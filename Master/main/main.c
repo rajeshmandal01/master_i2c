@@ -88,36 +88,49 @@ bool wait_for_ack() {
 void app_main() {
     init_i2c_master();
     init_adc();
-
+    int data[18]={0};
     while (1) {
-        for (int i = 1; i <= 24; i++) {
+		for (int i = 0; i < 18; i++) {
+			data[i] = 0;  // Initialize each element to 0
+			}
+        for (int i = 1; i <= 25; i++) {
             send_data_to_slave(i);
 
             // Wait for acknowledgment from the slave before proceeding
             if (wait_for_ack()) {
+				vTaskDelay(pdMS_TO_TICKS(1));
                 int64_t current_time = esp_timer_get_time();
-                printf("Sent Value: %d, Time: %lld ms", i, current_time / 1000);
+                data[0]=i;
+               // printf("Sent Value: %d, Time: %lld ms", i, current_time / 1000);
                 
                 // Read ADC1 values
                 for (int ch = 0; ch < 8; ch++) {
                     int raw_value;
                     adc_oneshot_read(adc1_handle, (adc_channel_t)ch, &raw_value);
-                    printf(", ADC1_CH%d: %d", ch, raw_value);
+                    vTaskDelay(pdMS_TO_TICKS(2));
+                  //  printf(", ADC1_CH%d: %d", ch, raw_value);
+                  data[ch+1]=raw_value;
                 }
 
                 // Read ADC2 values
-                for (int ch = 0; ch < 8; ch++) {
+                for (int ch = 0; ch < 9; ch++) {
                     int raw_value;
                     adc_oneshot_read(adc2_handle, (adc_channel_t)ch, &raw_value);
-                    printf(", ADC2_CH%d: %d", ch, raw_value);
+                    vTaskDelay(pdMS_TO_TICKS(2));
+                   // printf(", %d",raw_value);
+                   data[ch+9]=raw_value;
                 }
-
+                 printf("%lld", current_time / 1000);
+                for (int i = 0; i < 18; i++) {
+                   
+                    printf(", %d",data[i]);
+                  
+                }
                 printf("\n");
             } else {
                 printf("Acknowledgment not received for value: %d\n", i);
             }
-
-            vTaskDelay(pdMS_TO_TICKS(1000));  // Delay before sending next integer
+            vTaskDelay(pdMS_TO_TICKS(10));  // Delay before sending next integer
         }
     }
 }
